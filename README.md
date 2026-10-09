@@ -1,58 +1,77 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIPUS-Del — Sistem Informasi Perpustakaan Kampus Del
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Tugas Mandiri Praktikum Minggu 05 — Pemrograman & Pengujian Web (12S3101)
+Institut Teknologi Del • Semester Ganjil 2026/2027
 
-## About Laravel
+Nama : Davina Olivia Yosefanny Hutabarat
+NIM  : 12S24047
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Deskripsi
+Aplikasi CRUD perpustakaan dengan arsitektur MVC pada Laravel [isi versi dari `php artisan --version`].
+Mengelola data **Kategori** dan **Buku** (relasi One-to-Many), lengkap dengan
+validasi server-side, proteksi CSRF, Blade Component layout, pagination,
+dan pembuktian eager loading terhadap N+1 query problem.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Fitur
+- CRUD Buku dan Kategori (7 route RESTful via `Route::resource`)
+- Implicit Route Model Binding
+- Validasi server-side (ISBN unik, judul minimal 5 karakter, stok minimal 0)
+- Proteksi CSRF dan method spoofing di seluruh form
+- Master layout `<x-layout>` bertema Del Purple (#4C1D95)
+- Pagination, flash message, dan penanganan data kosong dengan `@forelse`
+- Seeder dan Factory: 6 kategori dan 30 buku (Faker)
+- Audit kueri SQL (`DB::listen`) untuk membuktikan eager loading
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Teknologi
+PHP 8.x, Laravel, SQLite, Blade, Bootstrap 5
 
-## Learning Laravel
+## Instalasi
+1. Clone repositori:
+   git clone https://github.com/DavinaHutabarat/ppw-2026-week5-12S24047.git
+   cd ppw-2026-week5-12S24047
+2. Pasang dependensi:
+   composer install
+3. Salin konfigurasi lingkungan:
+   cp .env.example .env
+   (Windows: copy .env.example .env)
+4. Buat application key:
+   php artisan key:generate
+5. Buat file database SQLite (jika belum ada):
+   type nul > database\database.sqlite
+6. Jalankan migrasi dan seeder:
+   php artisan migrate:fresh --seed
+7. Jalankan server:
+   php artisan serve
+8. Buka http://127.0.0.1:8000
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Struktur Database
+- `kategoris`: id, kode_kategori (unik), nama_kategori, timestamps
+- `bukus`: id, isbn (unik), judul, penulis, penerbit, tahun_terbit,
+  kategori_id (FK → kategoris, cascade delete), stok, sinopsis, timestamps
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Relasi: Kategori `hasMany` Buku, Buku `belongsTo` Kategori.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Bukti Audit SQL (Eager Loading)
+- Sebelum: `docs/audit-sql-sebelum-n-plus-1.txt`
+  (1 kueri utama + 10 kueri per baris → N+1)
+- Sesudah: `docs/audit-sql-sesudah-eager-loading.txt`
+  (kueri `bukus` + 1 kueri `kategoris where id in (...)`)
 
-## Agentic Development
+Implementasi: `Buku::with('kategori')->latest()->paginate(10)` di `BukuController@index`.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Screenshot
 
-```bash
-composer require laravel/boost --dev
+### Daftar Buku
+![Daftar Buku](docs/screenshots/daftar-buku.png)
 
-php artisan boost:install
-```
+### Validasi Form
+![Validasi Form](docs/screenshots/form-error.png)
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Detail Buku
+![Detail Buku](docs/screenshots/detail-buku.png)
 
-## Contributing
+### Daftar Kategori
+![Daftar Kategori](docs/screenshots/daftar-kategori.png)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Catatan
+File `.env` dan folder `vendor/` tidak disertakan di repositori.
