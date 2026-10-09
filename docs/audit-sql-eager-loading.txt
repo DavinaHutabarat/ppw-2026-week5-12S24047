@@ -1,0 +1,5 @@
+[2026-10-09 02:08:05] local.INFO: [SQL AUDIT] (2.64 ms) select * from "sessions" where "id" = ? limit 1  
+[2026-10-09 02:08:05] local.INFO: [SQL AUDIT] (0.13 ms) select count(*) as "aggregate" from "bukus"  
+[2026-10-09 02:08:05] local.INFO: [SQL AUDIT] (0.32 ms) select * from "bukus" order by "created_at" desc limit 10 offset 0  
+[2026-10-09 02:08:05] local.INFO: [SQL AUDIT] (0.36 ms) select * from "kategoris" where "kategoris"."id" in (1, 2)  
+[2026-10-09 02:08:05] local.INFO: [SQL AUDIT] (5.52 ms) update "sessions" set "payload" = ?, "last_activity" = ?, "user_id" = ?, "ip_address" = ?, "user_agent" = ? where "id" = ?  
