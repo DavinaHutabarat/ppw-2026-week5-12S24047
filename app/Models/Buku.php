@@ -11,15 +11,14 @@ class Buku extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'isbn',
+   protected $fillable = [
+        'kategori_id',
         'judul',
         'penulis',
         'penerbit',
         'tahun_terbit',
-        'kategori_id',
+        'isbn',
         'stok',
-        'sinopsis',
     ];
 
     public function kategori(): BelongsTo

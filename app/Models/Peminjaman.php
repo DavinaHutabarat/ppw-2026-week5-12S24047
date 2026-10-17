@@ -10,6 +10,7 @@ class Peminjaman extends Model
 {
     use HasFactory;
 
+    // WAJIB: Cegah Laravel mencari tabel 'peminjamen'
     protected $table = 'peminjamans';
 
     protected $fillable = [
