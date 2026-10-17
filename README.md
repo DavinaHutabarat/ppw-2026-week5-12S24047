@@ -18,7 +18,7 @@ Program Studi Sarjana Sistem Informasi - Institut Teknologi Del
 
 ---
 
-## 2. Struktur Skema Basis Data & Relasi ERD (Bobot: 20%)
+## 2. Struktur Skema Basis Data & Relasi ERD 
 Sistem memperluas basis data relasional persisten MySQL dengan menambahkan entitas transaksi peminjaman (`peminjamans`) yang terhubung langsung ke entitas buku (`bukus`):
 
 ```text
@@ -46,7 +46,7 @@ Sistem memperluas basis data relasional persisten MySQL dengan menambahkan entit
 
 ---
 
-## 3. Transaksi ACID & Pessimistic Locking (Bobot: 25%)
+## 3. Transaksi ACID & Pessimistic Locking 
 
 Seluruh mutasi stok dan pencatatan sirkulasi dibungkus menggunakan protokol transaksi ACID untuk menjamin integritas data dan mengeliminasi risiko *race condition*:
 
@@ -68,7 +68,7 @@ Seluruh mutasi stok dan pencatatan sirkulasi dibungkus menggunakan protokol tran
 
 ---
 
-## 4. Rekapitulasi Fluent Query Builder & Optimasi Kueri (Bobot: 15%)
+## 4. Rekapitulasi Fluent Query Builder & Optimasi Kueri 
 
 Untuk menghindari masalah performa *N+1 Query* dan menyajikan analitik perpustakaan secara efisien:
 
@@ -84,7 +84,7 @@ Untuk menghindari masalah performa *N+1 Query* dan menyajikan analitik perpustak
 
 ---
 
-## 5. Manajemen Sesi, Keamanan Cookie, & Autentikasi (Bobot: 25%)
+## 5. Manajemen Sesi, Keamanan Cookie, & Autentikasi 
 
 Implementasi pada `AuthController` mencakup standar keamanan web modern:
 
@@ -96,7 +96,7 @@ Implementasi pada `AuthController` mencakup standar keamanan web modern:
 
 ---
 
-## 6. Bukti Pengujian Sistem & Lampiran Audit DevTools (Bobot: 15%)
+## 6. Bukti Pengujian Sistem & Lampiran Audit DevTools 
 
 ### A. Uji Audit Cookie HttpOnly (Browser DevTools)
 Verifikasi keberadaan cookie `del_last_librarian_email` yang dikirim via `Cookie::queue()` serta flag keamanan `HttpOnly` aktif pada cookie sesi untuk memitigasi risiko XSS:
@@ -137,11 +137,5 @@ php artisan serve
 ```
 
 Akses sistem pada peramban web: `http://127.0.0.1:8000/buku`
-
-```
-
-<FollowUp>
-Apakah kamu ingin membuat folder khusus untuk menyimpan file gambar screenshot-nya (misalnya `public/docs/` atau `screenshots/`) agar bisa langsung ditampilkan di README GitHub?
-</FollowUp>
 
 ```
