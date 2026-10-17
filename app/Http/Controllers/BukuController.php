@@ -7,32 +7,45 @@ use App\Models\Kategori;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-public function index(Request $request)
+class BukuController extends Controller
 {
-    // Filter dinamis dan withCount relasi peminjamans
-    $bukus = Buku::with('kategori')
-        ->withCount('peminjamans')
-        ->when($request->search, function ($q, $search) {
-            $q->where(function ($sub) use ($search) {
-                $sub->where('judul', 'like', "%{$search}%")
-                    ->orWhere('penulis', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%");
-            });
-        })
-        ->when($request->kategori_id, fn($q, $katId) => $q->where('kategori_id', $katId))
-        ->latest()
-        ->paginate(10)
-        ->withQueryString();
+    public function index(Request $request)
+    {
+        if ($request->filled('search')) {
+            session(['last_catalog_search' => $request->search]);
+        }
 
-    // Statistik agregasi ringkas via Fluent Query Builder (DB::table)
-    $stats = [
-        'total_judul'           => DB::table('bukus')->count(),
-        'total_stok_tersedia'   => DB::table('bukus')->sum('stok'),
-        'total_sedang_dipinjam' => DB::table('peminjamans')->where('status', 'dipinjam')->count(),
-        'total_dikembalikan'    => DB::table('peminjamans')->where('status', 'dikembalikan')->count(),
-    ];
+        $bukus = Buku::with('kategori')
+            ->withCount('peminjamans')
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('judul', 'like', "%{$search}%")
+                      ->orWhere('penulis', 'like', "%{$search}%")
+                      ->orWhere('isbn', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->kategori_id, function ($query, $kategoriId) {
+                $query->where('kategori_id', $kategoriId);
+            })
+            ->latest()
+            ->paginate(8)
+            ->withQueryString();
 
-    $kategoris = Kategori::all();
+        $stats = [
+            'total_judul' => DB::table('bukus')->count(),
+            'total_stok' => DB::table('bukus')->sum('stok'),
+            'total_dipinjam' => DB::table('peminjamans')->where('status', 'dipinjam')->count(),
+            'total_dikembalikan' => DB::table('peminjamans')->where('status', 'dikembalikan')->count(),
+        ];
 
-    return view('buku.index', compact('bukus', 'stats', 'kategoris'));
+        $kategoris = Kategori::all();
+
+        return view('buku.index', compact('bukus', 'stats', 'kategoris'));
+    }
+
+    public function show(Buku $buku)
+    {
+        $buku->load(['kategori', 'peminjamans']);
+        return view('buku.show', compact('buku'));
+    }
 }
