@@ -2,46 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'SIPUS-Del' }} — Institut Teknologi Del</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPUS-Del</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .navbar-del { background-color: #4C1D95; }
-        .btn-del { background-color: #4C1D95; color: #ffffff; }
-        .btn-del:hover { background-color: #3B0764; color: #ffffff; }
-        .table-del thead { background-color: #4C1D95; color: #ffffff; }
-        .page-link { color: #4C1D95; }
-        .active > .page-link { background-color: #4C1D95; border-color: #4C1D95; color: #ffffff; }
-    </style>
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-del shadow-sm mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{{ route('buku.index') }}">SIPUS-Del</a>
-            <ul class="navbar-nav flex-row gap-3">
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('buku.*') ? 'active fw-bold' : '' }}"
-                       href="{{ route('buku.index') }}">Buku</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('kategori.*') ? 'active fw-bold' : '' }}"
-                       href="{{ route('kategori.index') }}">Kategori</a>
-                </li>
-            </ul>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('buku.index') }}">Katalog Buku</a>
+                    </li>
+                    @auth
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('peminjaman.index') }}">Sirkulasi Peminjaman</a>
+                        </li>
+                    @endauth
+                </ul>
+                <ul class="navbar-nav">
+                    @auth
+                        <li class="nav-item d-flex align-items-center text-white me-3">
+                            <small>{{ Auth::user()->name }} ({{ session('login_timestamp') }})</small>
+                        </li>
+                        <li class="nav-item">
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Logout</button>
+                            </form>
+                        </li>
+                    @else
+                        <li class="nav-item">
+                            <a class="btn btn-sm btn-primary" href="{{ route('login') }}">Login Pustakawan</a>
+                        </li>
+                    @endauth
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container pb-5">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
-        {{ $slot }}
-    </div>
+    <main>
+        @yield('content')
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html> 
