@@ -56,14 +56,17 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($data as [$kode, $nama, $judulJudul]) {
-            $kategori = Kategori::create([
-                'kode_kategori' => $kode,
-                'nama_kategori' => $nama,
-            ]);
+            $kategori = Kategori::firstOrCreate(
+                ['kode_kategori' => $kode],
+                ['nama_kategori' => $nama]
+            );
 
             foreach ($judulJudul as $judul) {
                 Buku::factory()->for($kategori)->create(['judul' => $judul]);
             }
         }
+
+        // Minggu 6: akun pustakawan, sampel stok 0 & 1, sampel peminjaman
+        $this->call(SipusSeeder::class);
     }
 }
