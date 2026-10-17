@@ -1,74 +1,129 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sirkulasi Peminjaman - SIPUS-Del</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Daftar Sirkulasi Peminjaman</h1>
-            <a href="{{ route('buku.index') }}" class="text-blue-600 hover:underline">&larr; Kembali ke Katalog Buku</a>
+@extends('components.layout')
+
+@section('content')
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">Sirkulasi Peminjaman Buku (ACID Transaction)</h4>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPinjam">
+            + Tambah Peminjaman
+        </button>
+    </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-        @if(session('success'))
-            <div class="p-4 mb-4 text-green-800 bg-green-200 rounded-lg">{{ session('success') }}</div>
-        @endif
-        @if(session('error'))
-            <div class="p-4 mb-4 text-red-800 bg-red-200 rounded-lg">{{ session('error') }}</div>
-        @endif
-
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-50 border-b">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
-                        <th class="p-3">Kode Pinjam</th>
-                        <th class="p-3">Buku</th>
-                        <th class="p-3">Peminjam</th>
-                        <th class="p-3">Tgl Pinjam</th>
-                        <th class="p-3">Jatuh Tempo</th>
-                        <th class="p-3">Status</th>
-                        <th class="p-3">Aksi</th>
+                        <th>Kode Pinjam</th>
+                        <th>Buku</th>
+                        <th>Peminjam</th>
+                        <th>Tgl Pinjam / Tempo</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($peminjamans as $p)
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-semibold">{{ $p->kode_pinjam }}</td>
-                        <td class="p-3">{{ $p->buku->judul ?? '-' }}</td>
-                        <td class="p-3">{{ $p->nama_peminjam }} ({{ $p->nim_peminjam }})</td>
-                        <td class="p-3">{{ $p->tanggal_pinjam }}</td>
-                        <td class="p-3">{{ $p->tanggal_jatuh_tempo }}</td>
-                        <td class="p-3">
-                            <span class="px-2 py-1 text-xs font-semibold rounded {{ $p->status === 'dipinjam' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
-                                {{ ucfirst($p->status) }}
-                            </span>
-                        </td>
-                        <td class="p-3">
-                            @if($p->status === 'dipinjam')
-                            <form action="{{ route('peminjaman.return', $p->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">Kembalikan</button>
-                            </form>
-                            @else
-                            <span class="text-xs text-gray-400">Selesai ({{ $p->tanggal_kembali }})</span>
-                            @endif
-                        </td>
-                    </tr>
+                    @forelse ($peminjamans as $p)
+                        <tr>
+                            <td><strong>{{ $p->kode_pinjam }}</strong></td>
+                            <td>{{ $p->buku->judul ?? '-' }}</td>
+                            <td>
+                                <div>{{ $p->nama_peminjam }}</div>
+                                <small class="text-muted">{{ $p->nim_peminjam }}</small>
+                            </td>
+                            <td>
+                                <div>Pinjam: {{ $p->tanggal_pinjam }}</div>
+                                <small class="text-danger">Tempo: {{ $p->tanggal_jatuh_tempo }}</small>
+                            </td>
+                            <td>
+                                @if ($p->status === 'dipinjam')
+                                    <span class="badge bg-warning text-dark">Dipinjam</span>
+                                @else
+                                    <span class="badge bg-success">Dikembalikan</span>
+                                    <br><small class="text-muted">{{ $p->tanggal_kembali }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($p->status === 'dipinjam')
+                                    <form action="{{ route('peminjaman.kembali', $p->id) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Kembalikan</button>
+                                    </form>
+                                @else
+                                    <span class="text-muted small">Selesai</span>
+                                @endif
+                            </td>
+                        </tr>
                     @empty
-                    <tr>
-                        <td colspan="7" class="p-4 text-center text-gray-500">Belum ada transaksi peminjaman.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Belum ada riwayat peminjaman.</td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        <div class="mt-4">
-            {{ $peminjamans->links() }}
-        </div>
     </div>
-</body>
-</html>
+
+    <div class="mt-3">
+        {{ $peminjamans->links() }}
+    </div>
+</div>
+
+{{-- Modal Pinjam Buku --}}
+<div class="modal fade" id="modalPinjam" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ route('peminjaman.store') }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Formulir Peminjaman Buku</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Pilih Buku (Stok Tersedia)</label>
+                    <select name="buku_id" class="form-select" required>
+                        <option value="">-- Pilih Buku --</option>
+                        @foreach ($bukus as $buku)
+                            <option value="{{ $buku->id }}">{{ $buku->judul }} (Sisa: {{ $buku->stok }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">NIM Mahasiswa</label>
+                    <input type="text" name="nim_peminjam" class="form-control" value="{{ old('nim_peminjam', session('last_borrower_nim')) }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nama Mahasiswa</label>
+                    <input type="text" name="nama_peminjam" class="form-control" value="{{ old('nama_peminjam') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tanggal Pinjam</label>
+                    <input type="date" name="tanggal_pinjam" class="form-control" value="{{ date('Y-m-d') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tanggal Jatuh Tempo</label>
+                    <input type="date" name="tanggal_jatuh_tempo" class="form-control" value="{{ date('Y-m-d', strtotime('+7 days')) }}" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Transaksi (ACID)</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
