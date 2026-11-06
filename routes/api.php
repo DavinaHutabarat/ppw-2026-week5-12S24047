@@ -12,6 +12,7 @@ Route::prefix('v1')->group(function () {
     // Rute Publik Katalog Buku
     Route::get('/bukus', [BukuApiController::class, 'index'])->name('api.v1.bukus.index');
     Route::get('/bukus/{id}', [BukuApiController::class, 'show'])->name('api.v1.bukus.show');
+    Route::get('/bukus/{id}/referensi-eksternal', [BukuApiController::class, 'referensiEksternal'])->name('api.v1.bukus.referensi');
 
     // Rute Terproteksi Pustakawan (auth:sanctum)
     Route::middleware('auth:sanctum')->group(function () {

@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\BukuResource;
 use App\Models\Buku;
 use App\Traits\ApiResponse;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 
 class BukuApiController extends Controller
 {
@@ -248,6 +250,103 @@ class BukuApiController extends Controller
         $buku->delete();
 
         return $this->noContentResponse();
+    }
+
+    /**
+     * Mengambil referensi eksternal buku dari OpenLibrary API (publik).
+     */
+    public function referensiEksternal(int|string $id): JsonResponse
+    {
+        $buku = Buku::find($id);
+
+        if (! $buku) {
+            return $this->problemResponse(
+                'https://tools.ietf.org/html/rfc7231#section-6.5.4',
+                'Not Found',
+                404,
+                "Resource buku dengan ID {$id} tidak ditemukan."
+            );
+        }
+
+        // Sanitasi format ISBN (buang karakter selain angka dan huruf X)
+        $cleanIsbn = preg_replace('/[^0-9X]/i', '', $buku->isbn);
+
+        if (empty($cleanIsbn)) {
+            return $this->problemResponse(
+                'https://tools.ietf.org/html/rfc7231#section-6.5.1',
+                'Bad Request',
+                400,
+                "ISBN '{$buku->isbn}' tidak memiliki format numerik yang valid untuk pencarian eksternal."
+            );
+        }
+
+        try {
+            $url = "https://openlibrary.org/isbn/{$cleanIsbn}.json";
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'Accept'     => 'application/json',
+                    'User-Agent' => 'SIPUS-Del-App/1.0 (perpustakaan@del.ac.id)',
+                ])
+                ->get($url);
+
+            if ($response->status() === 404) {
+                return $this->problemResponse(
+                    'https://tools.ietf.org/html/rfc7231#section-6.5.4',
+                    'Not Found',
+                    404,
+                    "Referensi eksternal untuk ISBN '{$buku->isbn}' tidak ditemukan pada OpenLibrary."
+                );
+            }
+
+            if ($response->failed()) {
+                return $this->problemResponse(
+                    'https://tools.ietf.org/html/rfc7231#section-6.6.3',
+                    'Bad Gateway',
+                    502,
+                    "Layanan eksternal OpenLibrary mengembalikan respon kegagalan (Status {$response->status()})."
+                );
+            }
+
+            $openLibraryData = $response->json();
+
+            return $this->successResponse([
+                'buku_id'   => $buku->id,
+                'isbn'      => $buku->isbn,
+                'judul'     => $buku->judul,
+                'penulis'   => $buku->penulis,
+                'sumber'    => 'OpenLibrary',
+                'referensi' => $openLibraryData,
+                '_links'    => [
+                    'self'            => [
+                        'href'   => url("/api/v1/bukus/{$buku->id}/referensi-eksternal"),
+                        'method' => 'GET',
+                    ],
+                    'buku'            => [
+                        'href'   => url("/api/v1/bukus/{$buku->id}"),
+                        'method' => 'GET',
+                    ],
+                    'openlibrary_web' => [
+                        'href'   => "https://openlibrary.org/isbn/{$cleanIsbn}",
+                        'method' => 'GET',
+                    ],
+                ],
+            ], 'Data referensi eksternal berhasil diperoleh dari OpenLibrary.');
+
+        } catch (ConnectionException $e) {
+            return $this->problemResponse(
+                'https://tools.ietf.org/html/rfc7231#section-6.6.3',
+                'Bad Gateway',
+                502,
+                'Gagal terhubung ke layanan OpenLibrary atau batas waktu koneksi habis (timeout 8 detik).'
+            );
+        } catch (\Throwable $e) {
+            return $this->problemResponse(
+                'https://tools.ietf.org/html/rfc7231#section-6.6.3',
+                'Bad Gateway',
+                502,
+                'Terjadi kesalahan saat memproses permintaan ke layanan OpenLibrary: ' . $e->getMessage()
+            );
+        }
     }
 }
 
