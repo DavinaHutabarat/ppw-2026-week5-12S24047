@@ -19,6 +19,7 @@ class Buku extends Model
         'tahun_terbit',
         'isbn',
         'stok',
+        'sinopsis',
     ];
 
     public function kategori(): BelongsTo
