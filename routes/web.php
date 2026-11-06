@@ -4,9 +4,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BukuController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PeminjamanController;
+use App\Http\Controllers\Soap\LibrarySoapController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('buku.index'));
+
+// SOAP Web Service (Perpustakaan Clearance Check)
+Route::get('/soap/sipus.wsdl', [LibrarySoapController::class, 'wsdl'])->name('soap.wsdl');
+Route::post('/soap/sipus', [LibrarySoapController::class, 'handle'])->name('soap.endpoint');
 
 // Autentikasi Pustakawan
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
