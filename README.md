@@ -139,44 +139,76 @@ Berkas kontrak dan koleksi pengujian resmi telah disediakan di direktori `docs/`
 
 ## 6. Bukti Pengujian Sistem (Screenshots)
 
-Berikut adalah placeholder bukti tangkapan layar pengujian fungsional web service SIPUS-Del:
-
-### 1. Bukti Uji 1: Layanan SOAP Clearance Service
-Pengujian permintaan kontrak `GET /soap/sipus.wsdl` dan pengujian `POST /soap/sipus` untuk pengecekan bebas pustaka mahasiswa (status aktif > 0 dan bebas pustaka 0 pinjaman), serta penanganan `soap:Fault` saat payload XML rusak atau NIM kosong.  
-![Bukti Uji 1 - Layanan SOAP Clearance](docs/screenshots/01-soap-clearance.png)
+Berikut adalah bukti tangkapan layar pengujian fungsional web service SIPUS-Del menggunakan Postman sesuai dengan masing-masing modul:
 
 ---
 
-### 2. Bukti Uji 2: Penanganan Exception Global Standar RFC 7807
-Pengujian respon format `application/problem+json` pada rute API saat terjadi error 401 Unauthorized (tanpa token), 404 Not Found (resource ID tidak ditemukan), dan 422 Unprocessable Content (validasi input gagal dengan rincian atribut `errors`).  
-![Bukti Uji 2 - RFC 7807 Problem Details](docs/screenshots/02-rfc7807-exceptions.png)
+### 1. Modul SOAP Clearance Service (Pengecekan Bebas Pustaka)
+
+#### A. Verifikasi Status Bebas Pustaka Mahasiswa (200 OK)
+Permintaan `POST /soap/sipus` dengan payload SOAP XML berisi `<nim_peminjam>12S24047</nim_peminjam>`. Sistem memeriksa basis data peminjaman aktif dan mengembalikan respon SOAP Envelope dengan `<active_loans>0</active_loans>` dan `<is_cleared>true</is_cleared>`.  
+![SOAP Clearance Check Berhasil](docs/screenshots/Screenshot%202026-11-06%20143303.png)
+
+#### B. Penanganan SOAP Fault saat Input Cacat / Kosong (400 Bad Request)
+Permintaan `POST /soap/sipus` dengan elemen `<nim_peminjam></nim_peminjam>` kosong. Sistem menolak dan merespon dengan `<soap:Fault>` HTTP 400 Bad Request: *"Nilai &lt;nim_peminjam&gt; tidak boleh kosong."*.  
+![SOAP Fault NIM Kosong](docs/screenshots/Screenshot%202026-11-06%20143552.png)
 
 ---
 
-### 3. Bukti Uji 3: Autentikasi Pustakawan Sanctum
-Pengujian siklus hidup otentikasi REST API: `POST /api/v1/auth/login` yang berhasil menerbitkan Personal Access Token, pengambilan profil pustakawan pada `GET /api/v1/auth/me`, dan pencabutan token pada `POST /api/v1/auth/logout`.  
-![Bukti Uji 3 - Sanctum Authentication](docs/screenshots/03-sanctum-auth.png)
+### 2. Modul Autentikasi Pustakawan (Laravel Sanctum)
+
+#### A. Login Pustakawan dan Penerbitan Bearer Token (200 OK)
+Permintaan `POST /api/v1/auth/login` menggunakan kredensial pustakawan uji (`pustakawan@del.ac.id` / `password123`). Sistem menerbitkan Personal Access Token Sanctum dan mengembalikan data profil pustakawan terautentikasi.  
+![Login Pustakawan Sanctum](docs/screenshots/Screenshot%202026-11-06%20143858.png)
 
 ---
 
-### 4. Bukti Uji 4: Katalog Buku REST API, Filter & Tautan HATEOAS
-Pengujian endpoint publik `GET /api/v1/bukus` dengan pagination meta, parameter pencarian, sorting whitelist, pencegahan query N+1, serta verifikasi bahwa link HATEOAS `_links.pinjam_buku` hanya muncul apabila stok buku fisik > 0.  
-![Bukti Uji 4 - Katalog Buku & HATEOAS](docs/screenshots/04-books-catalog-hateoas.png)
+### 3. Modul Katalog Buku RESTful API, HATEOAS, dan Mutasi
+
+#### A. Katalog Buku Publik Terpaginasi Bebas N+1 (200 OK)
+Permintaan `GET /api/v1/bukus` dengan format JSON. Data buku dimuat bersama relasi `kategori` dan agregat `total_peminjaman` secara atomik (*eager loading*) sehingga terbebas dari isu query N+1.  
+![Katalog Buku Terpaginasi](docs/screenshots/Screenshot%202026-11-06%20144048.png)
+
+#### B. Penambahan Buku Baru (POST 201 Created)
+Permintaan `POST /api/v1/bukus` dengan autentikasi Bearer Token pustakawan. Buku baru *"Pemrograman API Modern"* berhasil ditambahkan dengan status `201 Created` disertai header `Location`.  
+![Tambah Buku Baru](docs/screenshots/Screenshot%202026-11-06%20144444.png)
+
+#### C. Pembaruan Sebagian Atribut Buku (PATCH 200 OK)
+Permintaan `PATCH /api/v1/bukus/7` dengan payload parsial `{"stok": 5}`. Sistem memperbarui atribut stok menjadi 5 tanpa memodifikasi field lainnya.  
+![Update Sebagian PATCH](docs/screenshots/Screenshot%202026-11-06%20144601.png)
+
+#### D. Pembaruan Penuh Buku dengan Reset Nullable (PUT 200 OK)
+Permintaan `PUT /api/v1/bukus/7` mengirim seluruh atribut buku tanpa menyertakan `sinopsis`. Atribut `sinopsis` secara otomatis di-reset menjadi `null`.  
+![Update Penuh PUT](docs/screenshots/Screenshot%202026-11-06%20144637.png)
 
 ---
 
-### 5. Bukti Uji 5: Operasi CRUD Mutasi Buku & HTTP Status Code
-Pengujian operasi mutasi: `POST /api/v1/bukus` (201 Created + header Location), `PUT` update penuh yang mereset nilai nullable menjadi null, `PATCH` yang menolak payload kosong dengan 400 Bad Request, dan penolakan `DELETE` dengan 409 Conflict saat buku masih memiliki pinjaman aktif.  
-![Bukti Uji 5 - CRUD Buku Mutasi](docs/screenshots/05-books-crud-mutation.png)
+### 4. Modul Sirkulasi Peminjaman Atomik (Pessimistic Concurrency Lock)
+
+#### A. Transaksi Peminjaman Baru Berhasil (POST 201 Created)
+Permintaan `POST /api/v1/peminjamans` oleh mahasiswa NIM `12S24047` untuk meminjam buku ID 7. Transaksi dibungkus *pessimistic locking* (`lockForUpdate`), stok buku dipotong `-1`, kode transaksi unik diterbitkan (`PINJ-0CPEWV`), dan mengembalikan status `201 Created`.  
+![Peminjaman Buku Berhasil](docs/screenshots/Screenshot%202026-11-06%20144811.png)
+
+#### B. Penolakan Peminjaman Ganda oleh Mahasiswa yang Sama (409 Conflict)
+Permintaan `POST /api/v1/peminjamans` kedua kali oleh mahasiswa NIM `12S24047` untuk judul buku yang sama yang belum dikembalikan. Sistem menolak dengan respon standar RFC 7807 `409 Conflict`: *"Mahasiswa dengan NIM 12S24047 masih meminjam buku ... dan belum mengembalikannya."*.  
+![Penolakan Pinjam Ganda 409](docs/screenshots/Screenshot%202026-11-06%20144859.png)
+
+#### C. Penolakan Peminjaman saat Stok Buku Habis (422 Unprocessable Content)
+Permintaan `POST /api/v1/peminjamans` untuk buku ID 3 yang memiliki stok 0. Transaksi di-rollback secara atomik dan menghasilkan respon RFC 7807 `422 Unprocessable Content`: *"Stok buku sedang habis."*.  
+![Penolakan Stok Habis 422](docs/screenshots/Screenshot%202026-11-06%20144943.png)
+
+#### D. Pengembalian Buku Berhasil & Pemulihan Stok (PATCH 200 OK)
+Permintaan `PATCH /api/v1/peminjamans/5/kembalikan` mengunci baris data transaksi dan buku. Sistem memperbarui status menjadi `'dikembalikan'`, mengisi tanggal pengembalian, dan memulihkan stok fisik buku (`+1`).  
+![Pengembalian Buku Berhasil](docs/screenshots/Screenshot%202026-11-06%20145053.png)
+
+#### E. Penolakan Pengembalian Buku yang Sudah Dikembalikan (409 Conflict)
+Permintaan `PATCH /api/v1/peminjamans/5/kembalikan` dijalankan kembali pada transaksi yang sudah berstatus `'dikembalikan'`. Sistem menolak dengan respon RFC 7807 `409 Conflict`: *"Buku pada transaksi ini sudah berstatus dikembalikan sebelumnya."*.  
+![Penolakan Pengembalian Berulang 409](docs/screenshots/Screenshot%202026-11-06%20145113.png)
 
 ---
 
-### 6. Bukti Uji 6: Sirkulasi Peminjaman & Pengembalian Atomik (ACID Concurrency)
-Pengujian transaksi sirkulasi peminjaman dengan *Pessimistic Locking* (`lockForUpdate`): penolakan peminjaman buku stok 0 (422), penolakan mahasiswa meminjam buku yang sama sebelum dikembalikan (409), transaksi sukses (201 Created), dan pengembalian buku (200 OK) yang memulihkan stok serta menolak pengembalian berulang (409).  
-![Bukti Uji 6 - Sirkulasi Peminjaman Atomik](docs/screenshots/06-loans-circulation-atomic.png)
+### 5. Modul Integrasi Klien API Eksternal (Consumer API)
 
----
-
-### 7. Bukti Uji 7: Konsumer Layanan Eksternal OpenLibrary API
-Pengujian konsumsi data bibliografi eksternal pada endpoint `GET /api/v1/bukus/{id}/referensi-eksternal` dengan batasan timeout 8 detik, serta penanganan respon saat ISBN tidak ditemukan (404) dan penanganan kegagalan jaringan upstream (502 Bad Gateway) tanpa menyebabkan aplikasi mengalami *crash*.  
-![Bukti Uji 7 - Konsumer OpenLibrary](docs/screenshots/07-openlibrary-consumer.png)
+#### A. Pengujian Konsumsi Layanan HTTP Eksternal
+Pengujian pemanggilan layanan HTTP eksternal pihak ketiga dengan manajemen header otentikasi Bearer dan payload JSON mutasi profil (`PATCH https://api.github.com/user`).  
+![Konsumsi API Eksternal](docs/screenshots/Screenshot%202026-11-06%20145553.png)
